@@ -75,6 +75,12 @@ class WeixinInterface:
                 musictitle = music[1]
                 musicdes =music[2]
                 return self.render.reply_music(fromUser,toUser,int(time.time()),musictitle,musicdes,musicurl)
+            if content.lower() == 'l':
+                htmlList = [r'http://www.shidou.com','shidou',u'公司官网']
+                htmlurl = htmlList[0]
+                htmltitle = htmlList[1]
+                htmldes = htmlList[2]
+                return self.render.reply_url(fromUser,toUser,int(time.time()),htmltitle,htmldes,htmlurl)
             if type(content).__name__ == "unicode":
                 content = content.encode('utf-8')
             Nword = self.youdao(content)
