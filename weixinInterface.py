@@ -16,6 +16,22 @@ class WeixinInterface:
         self.app_root = os.path.dirname(__file__)
         self.templates_root = os.path.join(self.app_root, 'templates')
         self.render = web.template.render(self.templates_root)
+        self.replayText = [u'欢迎关注本公众号，请输入help查看所有功能',
+                           u'我现在功能还很简单，知道满足不了您的需求，但是我会慢慢改进，欢迎您以后再来',
+                           u'''这是本人业余开发的订阅号，做得不够好请见谅，快回复数字菜单或者输入关键字进入对应功能体验一下吧……
+1.翻译(输入中文或者英文)
+2.听音乐（关键字m）
+3.公司官网（关键字l）
+4.未完待续'''
+                           
+                           ]
+        self.musicList = [
+                          [r'http://play.baidu.com/?__m=mboxCtrl.playSong&__a=266922&__o=song/266922||playBtn&fr=-1||www.baidu.com#','百度随心听',u'请点击进入网页播放'] , 
+                          [r'http://testengineer-music.stor.sinaapp.com/%E6%B7%B1%E5%A4%9C%E5%9C%B0%E4%B8%8B%E9%93%81.mp3','深夜地下铁',u'献给我的肠粉们']
+                          ]
+        self.htmlList = [
+                         [r'http://www.shidou.com','shidou',u'公司官网','http://testengineer-picture.stor.sinaapp.com/20150715151456.jpg']
+                         ]
 
     def GET(self):
         #获取输入参数
@@ -50,41 +66,24 @@ class WeixinInterface:
         if mstype == "event":
             mscontent = xml.find("Event").text
             if mscontent == "subscribe":
-                replayText = u'''欢迎关注本公众号，这个是本人业余爱好所建立，也是想一边学习Python一边玩的东西
-        现在还没有什么功能，只是弄了个翻译与豆瓣图书查询的小工具，你们有什么好的文章也欢迎反馈给我,我会不定期的分享给大家，输入help查看操作指令'''
-                return self.render.reply_text(fromUser,toUser,int(time.time()),replayText)
+                return self.render.reply_text(fromUser,toUser,int(time.time()),self.replayText[0])
             if mscontent == "unsubscribe":
-                replayText = u'我现在功能还很简单，知道满足不了您的需求，但是我会慢慢改进，欢迎您以后再来'
-                return self.render.reply_text(fromUser,toUser,int(time.time()),replayText)
+                return self.render.reply_text(fromUser,toUser,int(time.time()),self.replayText[1])
         if mstype == 'text':
             content=xml.find("Content").text
             if content == 'help':
-                replayText = u'''1.输入中文或者英文返回对应的英中翻译
-2.输入 book 要查询的书名 返回豆瓣图书中结果
-3.输入cls清除查询记录
-4.输入m随机来首音乐听，建议在wifi下听
-5.输入python 进入python常用模块用法查询（未完成）'''
-                return self.render.reply_text(fromUser,toUser,int(time.time()),replayText)
-            if content.lower() == 'm':
-                musicList = [ 
-                             [r'http://play.baidu.com/?__m=mboxCtrl.playSong&__a=266922&__o=song/266922||playBtn&fr=-1||www.baidu.com#','百度随心听',u'献给我的肠粉们'] , 
-                             [r'http://pan.baidu.com/s/1gdEn1CZ','深夜地下铁',u'请在wifi时下载']
-                             ]
-                music = random.choice(musicList)
-                musicurl = music[0]
-                musictitle = music[1]
-                musicdes =music[2]
-                return self.render.reply_music(fromUser,toUser,int(time.time()),musictitle,musicdes,musicurl)
-            if content.lower() == 'l':
-                htmlList = [r'http://www.shidou.com','shidou',u'公司官网']
-                htmlurl = htmlList[0]
-                htmltitle = htmlList[1]
-                htmldes = htmlList[2]
-                return self.render.reply_url(fromUser,toUser,int(time.time()),htmltitle,htmldes,htmlurl)
-            if type(content).__name__ == "unicode":
-                content = content.encode('utf-8')
-            Nword = self.youdao(content)
-            return self.render.reply_text(fromUser,toUser,int(time.time()),Nword)
+                return self.render.reply_text(fromUser,toUser,int(time.time()),self.replayText[2])
+            elif content.lower() == 'm' or content == '2':
+                music = random.choice(self.musicList)
+                return self.render.reply_music(fromUser,toUser,int(time.time()),music[1],music[2],music[0])
+            elif content.lower() == 'l' or content == '3':
+                html = random.choice(self.htmlList)
+                return self.render.reply_news(fromUser, toUser, int(time.time()), html[1], html[2], html[0], html[3])
+            else :
+                if type(content).__name__ == "unicode":
+                    content = content.encode('utf-8')
+                Nword = self.youdao(content)
+                return self.render.reply_text(fromUser,toUser,int(time.time()),Nword)
 
     def youdao(self, word):
         qword = urllib2.quote(word)
@@ -94,7 +93,6 @@ class WeixinInterface:
             resp = urllib2.urlopen(url)
             fanyi = json.loads(resp.read())
         except urllib2.HTTPError, e:
-            print "query string:", url
             return "urllib2 http error:", str(e.code), ":", str(e.reason), str(e)
         except urllib2.URLError, e:
             return "urllib2 URL error:", e.message
