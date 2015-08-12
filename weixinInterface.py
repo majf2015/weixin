@@ -9,6 +9,7 @@ import httplib
 from lxml import etree
 import pylibmc
 import random
+import time
 
 class WeixinInterface:
     
@@ -17,21 +18,40 @@ class WeixinInterface:
         self.templates_root = os.path.join(self.app_root, 'templates')
         self.render = web.template.render(self.templates_root)
         self.replayText = [u'欢迎关注本公众号，请输入help查看所有功能',
-                           u'我现在功能还很简单，知道满足不了您的需求，但是我会慢慢改进，欢迎您以后再来',
-                           u'''这是本人业余开发的订阅号，做得不够好请见谅，快回复数字菜单或者输入关键字进入对应功能体验一下吧……
-1.翻译(输入中文或者英文)
-2.听音乐（关键字m）
-3.公司官网（关键字l）
-4.未完待续'''
+                           u'我现在功能还很简单，知道满足不了您的需求，但是我会慢慢改进,您已退出help流程，如需进入重新输入help,或者直接对应输入关键字',
+                           u'''业余开发，请见谅，回复数字或者输入关键字进入对应功能体验一下吧……
+1.翻译(回复1/输入中文/英文)
+2.听音乐（回复2/输入m）
+3.个人主页（回复3/输入l）
+4.美食教程（回复4/输入e）
+5.文艺生活（回复5/输入a）
+6.未完待续（回复6/输入exit）'''
                            
                            ]
         self.musicList = [
-                          [r'http://play.baidu.com/?__m=mboxCtrl.playSong&__a=266922&__o=song/266922||playBtn&fr=-1||www.baidu.com#','百度随心听',u'请点击进入网页播放'] , 
-                          [r'http://testengineer-music.stor.sinaapp.com/%E6%B7%B1%E5%A4%9C%E5%9C%B0%E4%B8%8B%E9%93%81.mp3','深夜地下铁',u'献给我的肠粉们']
+                          [r'http://fm.baidu.com/#','百度随心听',u'请点击进入网页播放'] , 
+                          [r'http://music.163.com/#/song?id=295150','深夜地下铁',u'献给我的肠粉们']
                           ]
-        self.htmlList = [
-                         [r'http://www.shidou.com','shidou',u'公司官网','http://testengineer-picture.stor.sinaapp.com/20150715151456.jpg']
+        self.newList = [
+                         [u'简单网页', 'my web', 'http://pic16.nipic.com/20110918/3101644_091102012560_2.jpg', r'http://testengineer.sinaapp.com/web'],
+                         [u'公司官网', 'shidou', 'http://img4.duitang.com/uploads/item/201111/21/20111121222741_TXe8h.thumb.600_0.jpg', r'http://www.shidou.com'],
+                         [u'个人微博', 'wei bo', 'http://p2.img.cctvpic.com/nettv/newgame/cdn_pic/mzl.amvyqtlq.png', r'http://m.weibo.cn/u/3123503230?from=1054095010&wm=9848_0009&sourceType=qq&uid=3123503230'],
+                         [u'QQ空间', 'QQ', 'http://pic.crsky.com/uploadfiles/2012-10-15/201210151552078456.png', r'http://user.qzone.qq.com/1021008546']
                          ]
+        self.eatList = [
+                         [u'香蕉煎饼', '助眠食谱', 'http://i3.meishichina.com/attachment/recipe/201110/201110261412563.jpg', r'http://home.meishichina.com/recipe-35763.html'],
+                         [u'香蕉奶昔', '助眠食谱', 'http://i3.meishichina.com/attachment/recipe/2012/12/18/20121218170900738892789.jpg', r'http://home.meishichina.com/recipe-4187.html'],
+                         [u'莲子鲜奶露', '助眠食谱', 'http://i3.meishichina.com/attachment/recipe/201110/201110171439004.jpg', r'http://home.meishichina.com/recipe-37820.html'],
+                         [u'杏仁奶糊', '助眠食谱', 'http://i3.meishichina.com/attachment/recipe/201110/201110181412071.jpg', r'http://home.meishichina.com/recipe-37445.html']
+                         ]
+        self.artList = [
+                         [u'若非心里有人，怎会暗里有光 ', '文艺生活', 'http://mmbiz.qpic.cn/mmbiz/HhorckbERhia8ickgSBiaib1ZoApHKJrEpdTk8KZ0bjk5kFIgLzobvCtelMgaHkuSD25ibtIcqPKydmTiczVnyic3gHBg/640?wx_fmt=jpeg&wxfrom=5', r'http://mp.weixin.qq.com/s?__biz=MjM5ODA0NTc4MA==&mid=212548048&idx=1&sn=127f38e95cdf1a61a534d4791905ebc9#rd'],
+                         [u'远远走来一个绿茶女 ', '文艺生活', 'http://mmbiz.qpic.cn/mmbiz/HhorckbERhhTzbVQP4atncicBnCvLSQK3DgConeySrWcMp55wM2jKswcKHAr9L8icu0wfFqmr1MWnU7WItFJiaq5A/640?wx_fmt=jpeg&wxfrom=5', r'http://mp.weixin.qq.com/s?__biz=MjM5ODA0NTc4MA==&mid=212886080&idx=1&sn=85c7c46726d62214c7bb81f9a8952158#rd'],
+                         [u'邮寄一只企鹅 ', '文艺生活', 'http://mmbiz.qpic.cn/mmbiz/HhorckbERhiabxfjhGrUTicq6BqXEY0EAsI6c4CJgzWM5spYsBKibdrtMO6F1Q504vZbiaLnicEnUMiakh4kuY8T5tMg/640?wx_fmt=jpeg&wxfrom=5', r'http://mp.weixin.qq.com/s?__biz=MjM5ODA0NTc4MA==&mid=213047416&idx=1&sn=7afc95e80fa51ad274401d02a855973a&scene=0#rd'],
+                         [u'只是因为在泳池中多看了你一眼 ', '文艺生活', 'http://mmbiz.qpic.cn/mmbiz/HhorckbERhgrXI6k47PjicddcKiaz2b5uh4IJcCCvq7f0KBUSLyBuzhEILVLpDElYEtZORakPHice32BtsZFH4a8w/640?wx_fmt=jpeg&wxfrom=5', r'http://mp.weixin.qq.com/s?__biz=MjM5ODA0NTc4MA==&mid=213226719&idx=1&sn=8aff79da49f2de9b29743931077738ed&scene=0#rd']
+                         ]
+        
+        self.status = 0
 
     def GET(self):
         #获取输入参数
@@ -70,20 +90,45 @@ class WeixinInterface:
             if mscontent == "unsubscribe":
                 return self.render.reply_text(fromUser,toUser,int(time.time()),self.replayText[1])
         if mstype == 'text':
-            content=xml.find("Content").text
+            content=xml.find("Content").text      
+            if self.status == 1:
+                if content == '1':
+                    self.status = 'y'
+                if content == '2':
+                    content = 'm'
+                if content == '3':
+                    content = 'l'
+                if content == '4':
+                    content = 'e'
+                if content == '5':
+                    content = 'a'
+                if content == '6':
+                    content = 'exit'
+                    
             if content == 'help':
+                self.status = 1
                 return self.render.reply_text(fromUser,toUser,int(time.time()),self.replayText[2])
-            elif content.lower() == 'm' or content == '2':
+            elif content.lower() == 'exit':
+                self.status = 0
+                return self.render.reply_text(fromUser,toUser,int(time.time()),self.replayText[1])
+
+            elif content.lower() == 'm':
                 music = random.choice(self.musicList)
                 return self.render.reply_music(fromUser,toUser,int(time.time()),music[1],music[2],music[0])
-            elif content.lower() == 'l' or content == '3':
-                html = random.choice(self.htmlList)
-                return self.render.reply_news(fromUser, toUser, int(time.time()), html[1], html[2], html[0], html[3])
-            else :
+            elif content.lower() == 'l':
+                return self.render.reply_news(fromUser, toUser, int(time.time()), self.newList[0], self.newList[1], self.newList[2], self.newList[3])      
+            elif content.lower() == 'e':
+                return self.render.reply_news(fromUser, toUser, int(time.time()), self.eatList[0], self.eatList[1], self.eatList[2], self.eatList[3])
+            elif content.lower() == 'a':
+                return self.render.reply_news(fromUser, toUser, int(time.time()), self.artList[0], self.artList[1], self.artList[2], self.artList[3])
+            elif self.status == 0:
+                return self.render.reply_text(fromUser,toUser,int(time.time()),self.replayText[1])
+            else:
                 if type(content).__name__ == "unicode":
                     content = content.encode('utf-8')
                 Nword = self.youdao(content)
-                return self.render.reply_text(fromUser,toUser,int(time.time()),Nword)
+                return self.render.reply_text(fromUser,toUser,int(time.time()),Nword) 
+
 
     def youdao(self, word):
         qword = urllib2.quote(word)
