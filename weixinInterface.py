@@ -10,6 +10,7 @@ from lxml import etree
 import pylibmc
 import random
 import time
+from bs4 import BeautifulSoup
 
 class WeixinInterface:
     
@@ -50,8 +51,8 @@ class WeixinInterface:
                          [u'邮寄一只企鹅 ', '文艺生活', 'http://mmbiz.qpic.cn/mmbiz/HhorckbERhiabxfjhGrUTicq6BqXEY0EAsI6c4CJgzWM5spYsBKibdrtMO6F1Q504vZbiaLnicEnUMiakh4kuY8T5tMg/640?wx_fmt=jpeg&wxfrom=5', r'http://mp.weixin.qq.com/s?__biz=MjM5ODA0NTc4MA==&mid=213047416&idx=1&sn=7afc95e80fa51ad274401d02a855973a&scene=0#rd'],
                          [u'只是因为在泳池中多看了你一眼 ', '文艺生活', 'http://mmbiz.qpic.cn/mmbiz/HhorckbERhgrXI6k47PjicddcKiaz2b5uh4IJcCCvq7f0KBUSLyBuzhEILVLpDElYEtZORakPHice32BtsZFH4a8w/640?wx_fmt=jpeg&wxfrom=5', r'http://mp.weixin.qq.com/s?__biz=MjM5ODA0NTc4MA==&mid=213226719&idx=1&sn=8aff79da49f2de9b29743931077738ed&scene=0#rd']
                          ]
-        
-        self.status = 0
+        with open('status.txt') as file:
+            self.status = file.read()
 
     def GET(self):
         #获取输入参数
@@ -91,7 +92,7 @@ class WeixinInterface:
                 return self.render.reply_text(fromUser,toUser,int(time.time()),self.replayText[1])
         if mstype == 'text':
             content=xml.find("Content").text      
-            if self.status == 1:
+            if self.status == '1':
                 if content == '1':
                     self.status = 'y'
                 if content == '2':
@@ -106,12 +107,12 @@ class WeixinInterface:
                     content = 'exit'
                     
             if content == 'help':
-                self.status = 1
+                self.status = '1'
                 return self.render.reply_text(fromUser,toUser,int(time.time()),self.replayText[2])
             elif content.lower() == 'exit':
-                self.status = 0
+                self.status = '0'
+                #file.write(self.status)
                 return self.render.reply_text(fromUser,toUser,int(time.time()),self.replayText[1])
-
             elif content.lower() == 'm':
                 music = random.choice(self.musicList)
                 return self.render.reply_music(fromUser,toUser,int(time.time()),music[1],music[2],music[0])
@@ -121,13 +122,14 @@ class WeixinInterface:
                 return self.render.reply_news(fromUser, toUser, int(time.time()), self.eatList[0], self.eatList[1], self.eatList[2], self.eatList[3])
             elif content.lower() == 'a':
                 return self.render.reply_news(fromUser, toUser, int(time.time()), self.artList[0], self.artList[1], self.artList[2], self.artList[3])
-            elif self.status == 0:
+            elif self.status == '0':
                 return self.render.reply_text(fromUser,toUser,int(time.time()),self.replayText[1])
             else:
                 if type(content).__name__ == "unicode":
                     content = content.encode('utf-8')
                 Nword = self.youdao(content)
                 return self.render.reply_text(fromUser,toUser,int(time.time()),Nword) 
+            file.close()
 
 
     def youdao(self, word):
