@@ -1,3 +1,4 @@
+
 # -*- coding: utf-8 -*-
 import hashlib
 import web
@@ -10,11 +11,14 @@ from lxml import etree
 import pylibmc
 import random
 import time
+<<<<<<< HEAD
 from menu import CreatMenu
+=======
+>>>>>>> c57e698bd01bfa3d69cc8419be634980b3dbc447
 
 
 class WeixinInterface:
-    
+
     def __init__(self):
         self.app_root = os.path.dirname(__file__)
         self.templates_root = os.path.join(self.app_root, 'templates')
@@ -31,10 +35,14 @@ class WeixinInterface:
                            u'欢迎使用翻译功能，请输入中文，或者英文进行翻译，如需返回help流程请输入“q”，如需返回默认状态请输入“exit”',
                            u'请输入对应的数据菜单，或者直接输入关键字',
                            u'你已退出翻译流程，目前在help流程下'
+<<<<<<< HEAD
                            
+=======
+
+>>>>>>> c57e698bd01bfa3d69cc8419be634980b3dbc447
                            ]
         self.musicList = [
-                          [r'http://fm.baidu.com/#','百度随心听',u'请点击进入网页播放'] , 
+                          [r'http://fm.baidu.com/#','百度随心听',u'请点击进入网页播放'] ,
                           [r'http://music.163.com/#/song?id=295150','深夜地下铁',u'献给我的肠粉们']
                           ]
         self.newList = [
@@ -55,7 +63,11 @@ class WeixinInterface:
                          [u'邮寄一只企鹅 ', '文艺生活', 'http://mmbiz.qpic.cn/mmbiz/HhorckbERhiabxfjhGrUTicq6BqXEY0EAsI6c4CJgzWM5spYsBKibdrtMO6F1Q504vZbiaLnicEnUMiakh4kuY8T5tMg/640?wx_fmt=jpeg&wxfrom=5', r'http://mp.weixin.qq.com/s?__biz=MjM5ODA0NTc4MA==&mid=213047416&idx=1&sn=7afc95e80fa51ad274401d02a855973a&scene=0#rd'],
                          [u'只是因为在泳池中多看了你一眼 ', '文艺生活', 'http://mmbiz.qpic.cn/mmbiz/HhorckbERhgrXI6k47PjicddcKiaz2b5uh4IJcCCvq7f0KBUSLyBuzhEILVLpDElYEtZORakPHice32BtsZFH4a8w/640?wx_fmt=jpeg&wxfrom=5', r'http://mp.weixin.qq.com/s?__biz=MjM5ODA0NTc4MA==&mid=213226719&idx=1&sn=8aff79da49f2de9b29743931077738ed&scene=0#rd']
                          ]
+<<<<<<< HEAD
         
+=======
+
+>>>>>>> c57e698bd01bfa3d69cc8419be634980b3dbc447
 
     def GET(self):
         #获取输入参数
@@ -83,9 +95,15 @@ class WeixinInterface:
         menu.PostMenu() 
         str_xml = web.data() #获得post来的数据
         xml = etree.fromstring(str_xml)#进行XML解析
+<<<<<<< HEAD
         mstype = xml.find("MsgType").text
         fromUser = xml.find("FromUserName").text
         toUser = xml.find("ToUserName").text
+=======
+        mstype=xml.find("MsgType").text
+        fromUser=xml.find("FromUserName").text
+        toUser=xml.find("ToUserName").text
+>>>>>>> c57e698bd01bfa3d69cc8419be634980b3dbc447
         self.mc = pylibmc.Client() #初始化一个memcache实例用来保存用户的操作
         if not self.mc.get(fromUser):
             self.mc.set(fromUser, 'exit')
@@ -106,7 +124,11 @@ class WeixinInterface:
                     return self.render.reply_text(fromUser,toUser,int(time.time()),self.replayText[1])
                 return self.render.reply_text(fromUser,toUser,int(time.time()),self.replayText[2])
         if mstype == 'text':
+<<<<<<< HEAD
             content=xml.find("Content").text      
+=======
+            content=xml.find("Content").text
+>>>>>>> c57e698bd01bfa3d69cc8419be634980b3dbc447
             if self.mc.get(fromUser) == 'help':
                 if content == '1' or content == 'y':
                     content = 'y'
@@ -122,20 +144,34 @@ class WeixinInterface:
                     content = 'exit'
                 else:
                     content = 'else'
+<<<<<<< HEAD
                     
             
             
+=======
+
+
+
+>>>>>>> c57e698bd01bfa3d69cc8419be634980b3dbc447
             if content == 'help':
                 self.mc.set(fromUser, 'help')
                 return self.render.reply_text(fromUser,toUser,int(time.time()),self.replayText[2])
             elif content.lower() == 'exit':
                 self.mc.set(fromUser, 'exit')
                 return self.render.reply_text(fromUser,toUser,int(time.time()),self.replayText[1])
+<<<<<<< HEAD
             elif content.lower() == 'else':  
                 return self.render.reply_text(fromUser,toUser,int(time.time()),self.replayText[4])
             elif content.lower() == 'q':
                 self.mc.set(fromUser, 'help')
                 return self.render.reply_text(fromUser,toUser,int(time.time()),self.replayText[5])        
+=======
+            elif content.lower() == 'else':
+                return self.render.reply_text(fromUser,toUser,int(time.time()),self.replayText[4])
+            elif content.lower() == 'q':
+                self.mc.set(fromUser, 'help')
+                return self.render.reply_text(fromUser,toUser,int(time.time()),self.replayText[5])
+>>>>>>> c57e698bd01bfa3d69cc8419be634980b3dbc447
             elif content.lower() == 'y':
                 self.mc.set(fromUser, 'fanyi')
                 return self.render.reply_text(fromUser,toUser,int(time.time()),self.replayText[3])
@@ -143,7 +179,7 @@ class WeixinInterface:
                 music = random.choice(self.musicList)
                 return self.render.reply_music(fromUser,toUser,int(time.time()),music[1],music[2],music[0])
             elif content.lower() == 'l':
-                return self.render.reply_news(fromUser, toUser, int(time.time()), self.newList[0], self.newList[1], self.newList[2], self.newList[3])      
+                return self.render.reply_news(fromUser, toUser, int(time.time()), self.newList[0], self.newList[1], self.newList[2], self.newList[3])
             elif content.lower() == 'e':
                 return self.render.reply_news(fromUser, toUser, int(time.time()), self.eatList[0], self.eatList[1], self.eatList[2], self.eatList[3])
             elif content.lower() == 'a':
@@ -155,8 +191,13 @@ class WeixinInterface:
                 return self.render.reply_text(fromUser,toUser,int(time.time()),Nword)
             elif self.mc.get(fromUser) == 'exit':
                 return self.render.reply_text(fromUser,toUser,int(time.time()),self.replayText[1])
+<<<<<<< HEAD
             
             
+=======
+
+
+>>>>>>> c57e698bd01bfa3d69cc8419be634980b3dbc447
 
     def youdao(self, word):
         qword = urllib2.quote(word)
