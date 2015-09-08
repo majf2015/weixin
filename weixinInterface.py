@@ -10,7 +10,8 @@ from lxml import etree
 import pylibmc
 import random
 import time
-from bs4 import BeautifulSoup
+from menu import CreatMenu
+
 
 class WeixinInterface:
     
@@ -19,14 +20,17 @@ class WeixinInterface:
         self.templates_root = os.path.join(self.app_root, 'templates')
         self.render = web.template.render(self.templates_root)
         self.replayText = [u'欢迎关注本公众号，请输入help查看所有功能',
-                           u'我现在功能还很简单，知道满足不了您的需求，但是我会慢慢改进,您已退出help流程，如需进入重新输入help,或者直接对应输入关键字',
+                           u'您已退出help流程，如需进入重新输入help,或者直接对应输入关键字',
                            u'''业余开发，请见谅，回复数字或者输入关键字进入对应功能体验一下吧……
-1.翻译(回复1/输入中文/英文)
+1.翻译(回复1/输入y)
 2.听音乐（回复2/输入m）
 3.个人主页（回复3/输入l）
 4.美食教程（回复4/输入e）
 5.文艺生活（回复5/输入a）
-6.未完待续（回复6/输入exit）'''
+6.未完待续（回复6/输入exit）''',
+                           u'欢迎使用翻译功能，请输入中文，或者英文进行翻译，如需返回help流程请输入“q”，如需返回默认状态请输入“exit”',
+                           u'请输入对应的数据菜单，或者直接输入关键字',
+                           u'你已退出翻译流程，目前在help流程下'
                            
                            ]
         self.musicList = [
@@ -51,8 +55,7 @@ class WeixinInterface:
                          [u'邮寄一只企鹅 ', '文艺生活', 'http://mmbiz.qpic.cn/mmbiz/HhorckbERhiabxfjhGrUTicq6BqXEY0EAsI6c4CJgzWM5spYsBKibdrtMO6F1Q504vZbiaLnicEnUMiakh4kuY8T5tMg/640?wx_fmt=jpeg&wxfrom=5', r'http://mp.weixin.qq.com/s?__biz=MjM5ODA0NTc4MA==&mid=213047416&idx=1&sn=7afc95e80fa51ad274401d02a855973a&scene=0#rd'],
                          [u'只是因为在泳池中多看了你一眼 ', '文艺生活', 'http://mmbiz.qpic.cn/mmbiz/HhorckbERhgrXI6k47PjicddcKiaz2b5uh4IJcCCvq7f0KBUSLyBuzhEILVLpDElYEtZORakPHice32BtsZFH4a8w/640?wx_fmt=jpeg&wxfrom=5', r'http://mp.weixin.qq.com/s?__biz=MjM5ODA0NTc4MA==&mid=213226719&idx=1&sn=8aff79da49f2de9b29743931077738ed&scene=0#rd']
                          ]
-        with open('status.txt') as file:
-            self.status = file.read()
+        
 
     def GET(self):
         #获取输入参数
@@ -76,12 +79,17 @@ class WeixinInterface:
             return echostr
 
     def POST(self):
+        menu = CreatMenu()
+        menu.PostMenu() 
         str_xml = web.data() #获得post来的数据
         xml = etree.fromstring(str_xml)#进行XML解析
-        mstype=xml.find("MsgType").text
-        fromUser=xml.find("FromUserName").text
-        toUser=xml.find("ToUserName").text
-        mc = pylibmc.Client() #初始化一个memcache实例用来保存用户的操作
+        mstype = xml.find("MsgType").text
+        fromUser = xml.find("FromUserName").text
+        toUser = xml.find("ToUserName").text
+        self.mc = pylibmc.Client() #初始化一个memcache实例用来保存用户的操作
+        if not self.mc.get(fromUser):
+            self.mc.set(fromUser, 'exit')
+
 
         #下面创建一个欢迎消息，通过判断Event类型
         if mstype == "event":
@@ -90,29 +98,47 @@ class WeixinInterface:
                 return self.render.reply_text(fromUser,toUser,int(time.time()),self.replayText[0])
             if mscontent == "unsubscribe":
                 return self.render.reply_text(fromUser,toUser,int(time.time()),self.replayText[1])
+            if mscontent == "CLICK":
+                EventKey = xml.find("EventKey").text
+                if EventKey == "A00001":
+                	return self.render.reply_text(fromUser,toUser,int(time.time()),self.replayText[0])
+                if EventKey == "http://fm.baidu.com/#":
+                    return self.render.reply_text(fromUser,toUser,int(time.time()),self.replayText[1])
+                return self.render.reply_text(fromUser,toUser,int(time.time()),self.replayText[2])
         if mstype == 'text':
             content=xml.find("Content").text      
-            if self.status == '1':
-                if content == '1':
-                    self.status = 'y'
-                if content == '2':
+            if self.mc.get(fromUser) == 'help':
+                if content == '1' or content == 'y':
+                    content = 'y'
+                elif content == '2' or content == 'm':
                     content = 'm'
-                if content == '3':
+                elif content == '3' or content == 'l':
                     content = 'l'
-                if content == '4':
+                elif content == '4' or content == 'e':
                     content = 'e'
-                if content == '5':
+                elif content == '5' or content == 'a':
                     content = 'a'
-                if content == '6':
+                elif content == '6' or content == 'exit':
                     content = 'exit'
+                else:
+                    content = 'else'
                     
+            
+            
             if content == 'help':
-                self.status = '1'
+                self.mc.set(fromUser, 'help')
                 return self.render.reply_text(fromUser,toUser,int(time.time()),self.replayText[2])
             elif content.lower() == 'exit':
-                self.status = '0'
-                #file.write(self.status)
+                self.mc.set(fromUser, 'exit')
                 return self.render.reply_text(fromUser,toUser,int(time.time()),self.replayText[1])
+            elif content.lower() == 'else':  
+                return self.render.reply_text(fromUser,toUser,int(time.time()),self.replayText[4])
+            elif content.lower() == 'q':
+                self.mc.set(fromUser, 'help')
+                return self.render.reply_text(fromUser,toUser,int(time.time()),self.replayText[5])        
+            elif content.lower() == 'y':
+                self.mc.set(fromUser, 'fanyi')
+                return self.render.reply_text(fromUser,toUser,int(time.time()),self.replayText[3])
             elif content.lower() == 'm':
                 music = random.choice(self.musicList)
                 return self.render.reply_music(fromUser,toUser,int(time.time()),music[1],music[2],music[0])
@@ -122,15 +148,15 @@ class WeixinInterface:
                 return self.render.reply_news(fromUser, toUser, int(time.time()), self.eatList[0], self.eatList[1], self.eatList[2], self.eatList[3])
             elif content.lower() == 'a':
                 return self.render.reply_news(fromUser, toUser, int(time.time()), self.artList[0], self.artList[1], self.artList[2], self.artList[3])
-            elif self.status == '0':
-                return self.render.reply_text(fromUser,toUser,int(time.time()),self.replayText[1])
-            else:
+            elif self.mc.get(fromUser) == 'fanyi':
                 if type(content).__name__ == "unicode":
                     content = content.encode('utf-8')
                 Nword = self.youdao(content)
-                return self.render.reply_text(fromUser,toUser,int(time.time()),Nword) 
-            file.close()
-
+                return self.render.reply_text(fromUser,toUser,int(time.time()),Nword)
+            elif self.mc.get(fromUser) == 'exit':
+                return self.render.reply_text(fromUser,toUser,int(time.time()),self.replayText[1])
+            
+            
 
     def youdao(self, word):
         qword = urllib2.quote(word)
